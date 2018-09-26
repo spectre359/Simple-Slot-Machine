@@ -1,0 +1,128 @@
+﻿@model SimpleSlotMachine.UI.Models.MainViewModel
+
+<br />
+@{ var i = 1;}
+<link href="~/Content/jquery.slotmachine.css" rel="stylesheet" />
+<div class="container">
+    <div class="row">
+        <div class="col-lg-12">
+            @if (ViewBag.Error != null)
+            {
+                <div class="alert alert-danger" role="alert">
+                    @ViewBag.Error
+                </div>
+            }
+            <fieldset>
+                <legend>Spin to Win!</legend>
+
+                <div class="row">
+                    <div class="col-sm-3">
+                        <label>Total credits:&nbsp; </label><label id="total">
+                            @if (Model.TotalCredits != 0)
+                            { <text>@Model.TotalCredits</text>}
+                        </label>
+                    </div>
+                    <div class="col-sm-3"><label>Current round Win:&nbsp; </label><label>@Model.CurrentWin</label></div>
+                </div>
+
+                <br />
+                <div class="row">
+                    <div class="col-sm-6">
+                        @foreach (var row in Model.Rows)
+                        {
+                            <div class="row" style="height:100px;overflow:hidden">
+                                @foreach (var symbol in row.Symbols)
+                                {
+
+                                    <div class="col-sm-4" style="height:100px;" id="machine@(i)">
+                                        <div><img src="img/@(symbol.Name).png" /></div>
+                                        <div><img src="img/Pineapple.png" /></div>
+                                        <div><img src="img/Banana.png" /></div>
+                                        <div><img src="img/Wildcard.png" /></div>
+                                    </div>
+                                    i++;
+                                }
+
+                            </div>
+                        }
+                        <br />
+                        @using (Html.BeginForm("Spin", "SlotMachine", null, FormMethod.Post, new { @class = "form-horizontal", role = "form", id = "spin_form" }))
+                        {
+                            @Html.AntiForgeryToken()
+                            <div class="row" style="text-align:center"><input class="form-control" style="display:initial" type="text" name="stakeAmount" id="stakeAmount" placeholder="Place a bet" onkeypress="return isNumberKey(event)" required></div>
+                            <br /><div class="row" style="text-align:center"><button class="btn btn-success" id="randomizeButton" title="Spin" type="submit">Spin</button></div>
+
+                        }
+                    </div>
+                </div>
+            </fieldset>
+        </div>
+    </div>
+    <br />
+
+</div>
+<div class="modal fade" id="exampleModal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="exampleModalLabel">@if (Model.GameStarted) { <text><b style="color:red">GAME OVER</b><br /></text>} Please enter a deposit amount</h5>
+            </div>
+            @using (Ajax.BeginForm("SetBalance", "SlotMachine", null, new AjaxOptions
+            {
+                InsertionMode = InsertionMode.Replace,
+                LoadingElementId = "loading",
+                OnSuccess = "closePopup()"
+            }, new { @class = "form-horizontal", role = "form" }))
+            {
+                <div class="modal-body">
+
+                    @Html.AntiForgeryToken()
+                    <div class="col-lg-9"><input class="form-control" type="number" name="balanceAmount" min="1" id="balanceAmount" placeholder="Set Total Balance Amount" onkeypress="return isNumberKey(event)" required></div>
+
+                </div>
+                <div class="modal-footer">
+                    <button type="submit" class="btn btn-primary">Save deposit</button>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+<script src="~/Scripts/jquery-1.10.2.min.js"></script>
+<script src="~/Scripts/slotmachine.js"></script>
+<script src="~/Scripts/jquery.slotmachine.min.js"></script>
+<script src="~/Scripts/SiteScripts.js"></script>
+<script type="text/javascript">
+    @if(Model.TotalCredits == 0)
+    {
+        <text>
+    $(document).ready(function () {
+        $('#exampleModal').modal({ backdrop: 'static', keyboard: false })
+    })
+    </text>
+    }
+
+    function closePopup() {
+        $('#exampleModal').modal('toggle')
+        $('body').removeClass('modal-open');
+        $('.modal-backdrop').remove();
+        $('#total').text($('#balanceAmount').val())
+    }
+
+    $("#spin_form").submit(function (event) {
+        event.preventDefault();
+        var isValid = true;
+
+        var bet = $("#stakeAmount").val();
+        if (!isNumber(bet)) {
+            isValid = false;
+        }
+        if (isValid) {
+
+            createSlotMachines(@((Model.Rows.Count * Model.Rows[0].Symbols.Count)))
+
+            $("#spin_form").submit();
+        }
+    });
+
+</script>
+
